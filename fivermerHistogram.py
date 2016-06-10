@@ -42,10 +42,10 @@ def fivemer_histogram(kmer, path_to_fast5s, threshold, outpath):
             print("Didn't find any means for {}".format(kmer))
             return
         with open(outpath + filename, 'w') as f:
-            for u in izip(means):
+            for u in means:
                 f.write("{u}\t".format(u=u))
             f.write("\n")
-            for p in izip(probs):
+            for p in probs:
                 f.write("{p}\t".format(p=p))
             f.write("\n")
             f.close()
