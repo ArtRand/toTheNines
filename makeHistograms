@@ -21,6 +21,7 @@ def parse_args():
                         default=4, type=int, help="number of jobs to run concurrently")
     parser.add_argument('--threshold', '-t', action='store', dest='threshold', required=False, type=float,
                         default=0.7)
+    return parser.parse_args()
 
 
 def write_histogram(work_queue, done_queue):
@@ -32,6 +33,8 @@ def write_histogram(work_queue, done_queue):
 
 
 def main(args):
+    args = parse_args()
+
     # setup workers for multiprocessing
     workers = args.nb_jobs
     work_queue = Manager().Queue()
