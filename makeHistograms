@@ -1,0 +1,66 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+import sys
+from fivermerHistogram import fivemer_histogram
+from multiprocessing import Process, current_process, Manager
+from argparse import ArgumentParser
+from itertools import product
+
+
+def parse_args():
+    parser = ArgumentParser(description=__doc__)
+
+    parser.add_argument('--file_directory', '-d', action='store',
+                        dest='files_dir', required=True, type=str, default=None,
+                        help="directory with MinION fast5 reads get kmer histograms from")
+    parser.add_argument('--output_location', '-o', action='store', dest='out',
+                        required=True, type=str, default=None,
+                        help="directory to put the histograms")
+    parser.add_argument('--jobs', '-j', action='store', dest='nb_jobs', required=False,
+                        default=4, type=int, help="number of jobs to run concurrently")
+    parser.add_argument('--threshold', '-t', action='store', dest='threshold', required=False, type=float,
+                        default=0.7)
+
+
+def write_histogram(work_queue, done_queue):
+    try:
+        for f in iter(work_queue.get, 'STOP'):
+            fivemer_histogram(**f)
+    except Exception as e:
+        done_queue.put("%s failed with %s" % (current_process().name, e.message))
+
+
+def main(args):
+    # setup workers for multiprocessing
+    workers = args.nb_jobs
+    work_queue = Manager().Queue()
+    done_queue = Manager().Queue()
+    jobs = []
+
+    kmers = [''.join(k) for k in product("ACGT", repeat=5)]
+
+    assert len(kmers) == 4**5
+
+    for kmer in kmers:
+        a = {
+            "kmer": kmer,
+            "path_to_fast5s": args.files_dir,
+            "threshold": args.threshold,
+            "outpath": args.out
+        }
+        work_queue.put(a)
+
+    for w in xrange(workers):
+        p = Process(target=write_histogram, args=(work_queue, done_queue))
+        p.start()
+        jobs.append(p)
+        work_queue.put('STOP')
+
+    for p in jobs:
+        p.join()
+
+    done_queue.put('STOP')
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
