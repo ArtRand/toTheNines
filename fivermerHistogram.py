@@ -4,6 +4,7 @@ import glob
 import os
 import sys
 from random import shuffle
+from itertools import izip
 
 
 def fivemer_histogram(kmer, path_to_fast5s, threshold, outpath):
@@ -24,32 +25,37 @@ def fivemer_histogram(kmer, path_to_fast5s, threshold, outpath):
         files = listFiles()
         assert len(files) != 0, "Didn't find any files here {}".format(path_to_fast5s)
         means = []
+        probs = []
         for f in files:
             minion_read = open_fast5(f)
             if minion_read is None:
                 continue
             means += [x[0] for x in minion_read[address] if x[4] == kmer and x[7] >= threshold]
+            probs += [x[7] for x in minion_read[address] if x[4] == kmer and x[7] >= threshold]
             minion_read.close()
             if len(means) >= limit:
                 break
-        return means
+        return means, probs
 
-    def write_means(means, filename):
+    def write_means_and_probs(means, probs, filename):
         if len(means) == 0:
             print("Didn't find any means for {}".format(kmer))
             return
         with open(outpath + filename, 'w') as f:
-            for u in means:
+            for u in izip(means):
                 f.write("{u}\t".format(u=u))
+            f.write("\n")
+            for p in izip(probs):
+                f.write("{p}\t".format(p=p))
             f.write("\n")
             f.close()
 
     template_address = "Analyses/Basecall_1D_000/BaseCalled_template/Events"
     complement_address = "Analyses/Basecall_1D_000/BaseCalled_complement/Events"
 
-    template_means = collect_means_with_threshold(template_address)
-    complement_means = collect_means_with_threshold(complement_address)
+    template_means, template_probs = collect_means_with_threshold(template_address)
+    complement_means, complement_probs = collect_means_with_threshold(complement_address)
 
-    write_means(template_means, "{kmer}.template.tsv".format(kmer=kmer))
-    write_means(complement_means, "{kmer}.complement.tsv".format(kmer=kmer))
+    write_means_and_probs(template_means, template_probs, "{kmer}.template.tsv".format(kmer=kmer))
+    write_means_and_probs(complement_means, complement_probs, "{kmer}.complement.tsv".format(kmer=kmer))
     return
