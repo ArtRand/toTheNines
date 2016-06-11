@@ -7,7 +7,7 @@ from random import shuffle
 from itertools import izip
 
 
-def fivemer_histogram(kmer, path_to_fast5s, threshold, outpath):
+def fivemer_histogram(kmer, path_to_fast5s, threshold, limit, outpath):
     def listFiles():
         files = [x for x in glob.glob(path_to_fast5s) if os.stat(x).st_size != 0]
         shuffle(files)
@@ -21,7 +21,7 @@ def fivemer_histogram(kmer, path_to_fast5s, threshold, outpath):
             print("Error opening file {filename}".format(filename=fast5), file=sys.stderr)
             return None
 
-    def collect_means_with_threshold(address, limit=500):
+    def collect_means_with_threshold(address):
         files = listFiles()
         assert len(files) != 0, "Didn't find any files here {}".format(path_to_fast5s)
         means = []

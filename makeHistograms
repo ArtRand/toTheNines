@@ -19,6 +19,8 @@ def parse_args():
                         help="directory to put the histograms")
     parser.add_argument('--jobs', '-j', action='store', dest='nb_jobs', required=False,
                         default=4, type=int, help="number of jobs to run concurrently")
+    parser.add_argument('--limit', '-l', action='store', dest='limit', required=False,
+                        default=100, type=int, help="number of observations to get")
     parser.add_argument('--threshold', '-t', action='store', dest='threshold', required=False, type=float,
                         default=0.7)
     return parser.parse_args()
@@ -50,6 +52,7 @@ def main(args):
             "kmer": kmer,
             "path_to_fast5s": args.files_dir,
             "threshold": args.threshold,
+            "limit": args.limit,
             "outpath": args.out
         }
         work_queue.put(a)
