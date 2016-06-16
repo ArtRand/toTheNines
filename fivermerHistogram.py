@@ -1,10 +1,10 @@
 from __future__ import print_function
-import h5py
 import glob
 import os
 import sys
 from random import shuffle
-from itertools import izip
+import pandas as pd
+import numpy as np
 
 
 def listFiles(path_to_fast5s):
@@ -14,49 +14,39 @@ def listFiles(path_to_fast5s):
 
 
 def fivemer_histogram(kmer, path_to_fast5s, threshold, limit, outpath):
-    def open_fast5(fast5):
+    def parse_table(assignments):
         try:
-            f = h5py.File(fast5, 'r')
-            return f
+            data = pd.read_table(assignments,
+                                 usecols=(0, 1, 2, 3),
+                                 dtype={"5mer": np.str,
+                                        "mean": np.float64,
+                                        "prob": np.float64,
+                                        "strand": np.str},
+                                 header=None,
+                                 names=['5mer', 'mean', 'prob', 'strand'])
+            return data
         except Exception as e:
-            print("Error opening file {filename}".format(filename=fast5), file=sys.stderr)
+            print("Error opening file {filename}".format(filename=assignments), file=sys.stderr)
             return None
 
-    def collect_means_with_threshold(address):
+    def collect_means_with_threshold():
         files = listFiles(path_to_fast5s=path_to_fast5s)
         assert len(files) != 0, "Didn't find any files here {}".format(path_to_fast5s)
-        means = []
-        probs = []
+        total = 0
+        outfile = open(outpath + "{kmer}.histogram".format(kmer=kmer), 'a')
         for f in files:
-            minion_read = open_fast5(f)
-            if minion_read is None:
+            data = parse_table(f)
+            if data is None:
                 continue
-            means += [x[0] for x in minion_read[address] if x[4] == kmer and x[7] >= threshold]
-            probs += [x[7] for x in minion_read[address] if x[4] == kmer and x[7] >= threshold]
-            minion_read.close()
-            if len(means) >= limit:
+            d = data.ix[(data['prob'] >= threshold) &
+                        (data['5mer'] == kmer)]
+            d = d.drop('5mer', 1)
+            d.to_csv(outfile, sep='\t', header=False, index=False)
+            total += d.shape[0]
+            if total >= limit:
                 break
-        return means, probs
-
-    def write_means_and_probs(means, probs, filename):
-        if len(means) == 0:
-            print("Didn't find any means for {}".format(kmer))
-            return
-        with open(outpath + filename, 'w') as f:
-            for u in means:
-                f.write("{u}\t".format(u=u))
-            f.write("\n")
-            for p in probs:
-                f.write("{p}\t".format(p=p))
-            f.write("\n")
-            f.close()
-
-    template_address = "Analyses/Basecall_1D_000/BaseCalled_template/Events"
-    complement_address = "Analyses/Basecall_1D_000/BaseCalled_complement/Events"
-
-    template_means, template_probs = collect_means_with_threshold(template_address)
-    complement_means, complement_probs = collect_means_with_threshold(complement_address)
-
-    write_means_and_probs(template_means, template_probs, "{kmer}.template.tsv".format(kmer=kmer))
-    write_means_and_probs(complement_means, complement_probs, "{kmer}.complement.tsv".format(kmer=kmer))
+        outfile.close()
+        return total
+    t = collect_means_with_threshold()
+    print("Got {n} assignments for {kmer}".format(n=t, kmer=kmer))
     return

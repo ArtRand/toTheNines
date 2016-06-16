@@ -55,6 +55,7 @@ def main(args):
             "limit": args.limit,
             "outpath": args.out
         }
+        #fivemer_histogram(**a)
         work_queue.put(a)
 
     for w in xrange(workers):

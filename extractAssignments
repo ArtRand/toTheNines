@@ -5,7 +5,6 @@ from outputTables import outputTables
 from fivermerHistogram import listFiles
 from multiprocessing import Process, current_process, Manager
 from argparse import ArgumentParser
-from itertools import product
 
 
 def parse_args():
@@ -13,7 +12,7 @@ def parse_args():
 
     parser.add_argument('--file_directory', '-d', action='store',
                         dest='files_dir', required=True, type=str, default=None,
-                        help="directory with MinION fast5 reads get kmer histograms from")
+                        help="directory with MinION fast5 reads get kmer histograms from, with *.fast5")
     parser.add_argument('--output_location', '-o', action='store', dest='out',
                         required=True, type=str, default=None,
                         help="directory to put the histograms")
