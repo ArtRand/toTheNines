@@ -32,21 +32,31 @@ def fivemer_histogram(kmer, path_to_fast5s, threshold, limit, outpath):
     def collect_means_with_threshold():
         files = listFiles(path_to_fast5s=path_to_fast5s)
         assert len(files) != 0, "Didn't find any files here {}".format(path_to_fast5s)
-        total = 0
+        total_template = 0
+        total_complement = 0
         outfile = open(outpath + "{kmer}.histogram".format(kmer=kmer), 'a')
         for f in files:
             data = parse_table(f)
             if data is None:
                 continue
-            d = data.ix[(data['prob'] >= threshold) &
-                        (data['5mer'] == kmer)]
-            d = d.drop('5mer', 1)
-            d.to_csv(outfile, sep='\t', header=False, index=False)
-            total += d.shape[0]
-            if total >= limit:
+            if total_template < limit:
+                d = data.ix[(data['prob'] >= threshold) &
+                            (data['5mer'] == kmer) &
+                            (data['strand'] == 't')]
+                d = d.drop('5mer', 1)
+                d.to_csv(outfile, sep='\t', header=False, index=False)
+                total_template += d.shape[0]
+            if total_complement < limit:
+                d = data.ix[(data['prob'] >= threshold) &
+                            (data['5mer'] == kmer) &
+                            (data['strand'] == 'c')]
+                d = d.drop('5mer', 1)
+                d.to_csv(outfile, sep='\t', header=False, index=False)
+                total_complement += d.shape[0]
+            if total_template >= limit and total_complement >= limit:
                 break
         outfile.close()
-        return total
-    t = collect_means_with_threshold()
-    print("Got {n} assignments for {kmer}".format(n=t, kmer=kmer))
+        return total_template, total_complement
+    t, c = collect_means_with_threshold()
+    print("Got {t} template and {c} complement assignments for {kmer}".format(t=t, c=c, kmer=kmer))
     return
